@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Courses</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+
+    <h2>Lista kursow</h2>
+    <form name="courseForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group col-md-5">
+            <label for="name">Course:</label>
+            <input class="form-control" name="name" />
+        </div>
+        <div class="form-group col-md-5">
+            <label for="opis">Description:</label>
+            <input class="form-control" name="opis" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" id="submit" class="btn btn-primary">Save</button>
+            <a id="reset" class="btn btn-primary">Drop</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped  col-md-6">
+        <thead><tr><th>Id</th><th>Name</th><th>Description</th><th></th></tr></thead>
+
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+
+        
+        async function GetCourses() {
+            const response = await fetch("/api/courses", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const courses = await response.json();
+                let rows = document.querySelector("tbody");
+                courses.forEach(course => {
+                    rows.append(row(course));
+                });
+            }
+        }
+        
+        async function GetCourse(id) {
+            const response = await fetch("/api/courses/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const course = await response.json();
+                const form = document.forms["courseForm"];
+                form.elements["id"].value = course.id;
+                form.elements["name"].value = course.name;
+                form.elements["opis"].value = course.age;
+            }
+        }
+        
+        async function CreateCourse(courseName, courseOpis) {
+
+            const response = await fetch("api/courses", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: courseName,
+                    opis: courseOpis
+                })
+            });
+            if (response.ok === true) {
+                const course = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(course));
+            }
+        }
+        
+        async function EditCourse(courseId, courseName, courseOpis) {
+            const response = await fetch("api/courses", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: parseInt(courseId, 10),
+                    name: courseName,
+                    opis: courseOpis
+                })
+            });
+            if (response.ok === true) {
+                const course = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + course.id + "']").replaceWith(row(course));
+            }
+        }
+       
+        async function DeleteCourse(id) {
+            const response = await fetch("/api/courses/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const course = await response.json();
+                document.querySelector("tr[data-rowid='" + course.id + "']").remove();
+            }
+        }
+        
+        function reset() {
+            const form = document.forms["courseForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+        
+        function row(course) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", course.id);
+
+            const idTd = document.createElement("td");
+            idTd.append(course.id);
+            tr.append(idTd);
+
+            const nameTd = document.createElement("td");
+            nameTd.append(course.name);
+            tr.append(nameTd);
+
+            const opisTd = document.createElement("td");
+            opisTd.append(course.opis);
+            tr.append(opisTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", course.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Change");
+            editLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                GetCourse(course.id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", course.id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Delete");
+            removeLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                DeleteCourse(course.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+        
+        document.getElementById("reset").click(function (e) {
+
+            e.preventDefault();
+            reset();
+        })
+        
+        document.forms["courseForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["courseForm"];
+            const id = form.elements["id"].value;
+            const name = form.elements["name"].value;
+            const opis = form.elements["opis"].value;
+            if (id == 0)
+                CreateCourse(name, opis);
+            else
+                EditCourse(id, name, opis);
+        });
+
+        GetCourses();
+
+        
+    </script>
+
+</body>
+</html>
